@@ -1,0 +1,121 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ics-exploitation-mcp"
+version = "1.0.0"
+description = "Unified MCP server for Industrial Control Systems security assessment - OPC-UA and S7comm protocols"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+authors = [
+    {name = "ICS Security Research"}
+]
+keywords = [
+    "mcp",
+    "model-context-protocol",
+    "ics",
+    "scada",
+    "plc",
+    "opcua",
+    "opc-ua",
+    "siemens",
+    "s7comm",
+    "s7",
+    "industrial",
+    "automation",
+    "security",
+    "pentesting",
+    "security-assessment"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: System :: Hardware",
+    "Topic :: System :: Networking",
+    "Topic :: Scientific/Engineering",
+]
+
+# No core dependencies - protocols are optional
+dependencies = []
+
+[project.optional-dependencies]
+# OPC-UA protocol support
+opcua = [
+    "opcua>=0.98.0",
+    "cryptography>=41.0.0",
+]
+
+# S7comm protocol support
+s7 = [
+    "python-snap7>=1.3",
+]
+
+# MCP server mode
+mcp = [
+    "mcp>=1.0.0",
+]
+
+# Status monitoring utilities
+monitoring = [
+    "requests>=2.25.0",
+]
+
+# All protocols and features
+all = [
+    "opcua>=0.98.0",
+    "cryptography>=41.0.0",
+    "python-snap7>=1.3",
+    "mcp>=1.0.0",
+    "requests>=2.25.0",
+]
+
+# Development dependencies
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.20.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+ics-exploitation-mcp = "ics_exploitation_mcp:main"
+
+[project.urls]
+Homepage = "https://github.com/0xhackerfren/ICS-Explotation-MCP"
+Documentation = "https://github.com/0xhackerfren/ICS-Explotation-MCP#readme"
+Repository = "https://github.com/0xhackerfren/ICS-Explotation-MCP"
+Issues = "https://github.com/0xhackerfren/ICS-Explotation-MCP/issues"
+
+[tool.setuptools]
+py-modules = ["ics_exploitation_mcp"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

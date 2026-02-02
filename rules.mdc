@@ -1,0 +1,190 @@
+---
+description: "ICS Exploitation MCP: OPC-UA, S7comm, BACnet, Modbus, and EtherNet/IP protocol exploitation for ICS/SCADA/Building Automation security assessments"
+alwaysApply: false
+---
+# ICS Exploitation MCP Rule
+
+**Validated**: OPC-UA, S7comm, BACnet, Modbus, and EtherNet/IP protocols tested against real-world ICS scenarios
+
+Use the **ics-exploitation-mcp** when performing ICS/SCADA/Building Automation security assessments involving industrial protocols.
+
+## When to Use This MCP
+
+| Indicator | Protocol | First Tool |
+|-----------|----------|------------|
+| Port 4840, OPC-UA URL | OPC-UA | `opcua_enumerate_endpoints` |
+| Port 102, Siemens S7 | S7comm | `s7_connect` |
+| Non-standard port with PLC | S7comm | `s7_connect` with custom port |
+| HMI with status API | S7comm | `s7_monitor_status` |
+| Building automation, HVAC | BACnet | `bacnet_connect` |
+| Thermostat, alarm threshold | BACnet | `bacnet_list_objects` |
+| Menu-driven ICS CLI (objects) | BACnet | `bacnet_connect` |
+| Port 502, Modbus, coils/registers | Modbus | `modbus_connect` |
+| Water tank, ladder logic, PLC coils | Modbus | `modbus_connect` |
+| Menu-driven ICS CLI (status/command) | Modbus | `modbus_connect` |
+| Port 44818, EtherNet/IP, CIP | EtherNet/IP | `ethernetip_connect` |
+| Allen-Bradley, Rockwell, ControlLogix | EtherNet/IP | `ethernetip_connect` |
+| Tag read required | EtherNet/IP | `ethernetip_connect` |
+
+## Protocol Selection
+
+```
+Target uses "OPC" or "UA" or port 4840?
+  -> Use OPC-UA tools (opcua_*)
+
+Target uses "Siemens" or "S7" or "PLC" or port 102?
+  -> Use S7comm tools (s7_*)
+
+Target uses "BACnet" or "HVAC" or "building automation" or "thermostat"?
+  -> Use BACnet tools (bacnet_*)
+
+Target uses "Modbus" or "coils" or "registers" or "ladder logic"?
+  -> Use Modbus tools (modbus_*)
+
+Target uses "EtherNet/IP" or "CIP" or "Allen-Bradley" or "Rockwell"?
+  -> Use EtherNet/IP tools (ethernetip_*)
+
+System has menu-driven CLI with "objects/read/write" options?
+  -> Use BACnet tools (bacnet_*)
+
+System has menu-driven CLI with "status/command" options?
+  -> Use Modbus tools (modbus_*)
+
+Multiple protocols present?
+  -> Start with `ics_check_installation` then use appropriate protocol
+```
+
+## OPC-UA Attack Flow
+
+1. **Enumerate**: `opcua_enumerate_endpoints` - Find security requirements
+2. **Certificate**: `opcua_generate_cert` - Generate self-signed cert (trust list bypass)
+3. **Connect**: `opcua_connect` with cert if encryption required
+4. **Find Attack Surface**: `opcua_find_writable` - List writable variables
+5. **Exploit**: `opcua_write` to manipulate PLC state
+6. **Cleanup**: `opcua_disconnect`
+
+## S7comm Attack Flow
+
+1. **Connect**: `s7_connect` with IP, rack, slot, port (check for non-standard ports)
+2. **Enumerate**: `s7_list_blocks` - Find data blocks
+3. **Read**: `s7_db_read` - Examine data block contents
+4. **Exploit**: `s7_db_write` with payload (use `s7_generate_payload` for patterns)
+5. **Sustained**: `s7_sustained_attack` or `s7_sustained_attack_multi` if faults auto-reset
+6. **Monitor**: `s7_monitor_status` to capture status from HMI
+
+## BACnet Attack Flow
+
+1. **Connect**: `bacnet_connect` to menu-driven CLI
+2. **Enumerate**: `bacnet_list_objects` - Find thermostats, alarms, doors
+3. **Find Writable**: `bacnet_find_writable` - Identify attack surface
+4. **Batch Write**: `bacnet_write_multiple` for multiple simultaneous writes
+5. **Sustained Write**: `bacnet_sustained_write` to maintain state against auto-reset
+6. **Cleanup**: `bacnet_disconnect`
+
+## Modbus Attack Flow
+
+1. **Connect**: `modbus_connect` to menu-driven CLI (typically port 502 or custom)
+2. **Get Status**: `modbus_get_status` - Understand current system state
+3. **Analyze Coil Map**: Review documentation for coil addresses and slave IDs
+4. **Enable Manual Mode**: `modbus_write_coil` to mode control coil
+5. **Manipulate**: `modbus_write_coil` or `modbus_write_register` to control outputs
+6. **Verify**: `modbus_get_status` to check changes and verify success
+7. **Cleanup**: `modbus_disconnect`
+
+**Key Insight**: Direct valve/output writes may not work due to ladder logic overrides.
+Use mode control coils (manual_mode) and force commands to bypass.
+
+## EtherNet/IP Attack Flow
+
+1. **Connect**: `ethernetip_connect` (port 44818 default)
+2. **Try Tag Read**: `ethernetip_read_tag("Status")` - May work if LogixDriver available
+3. **If Tag Fails**: `ethernetip_read_cip_object(0x02, 1)` - Message Router often has data
+4. **Enumerate**: `ethernetip_enumerate_objects` - Scan for hidden data in CIP objects
+5. **Check Decoded**: Look at `decoded` field for UTF-16-LE, UTF-8, ASCII strings
+6. **Cleanup**: `ethernetip_disconnect`
+
+**Key Insight**: Data often stored in Message Router (class 0x02) as UTF-16-LE encoded strings.
+The `read_cip_object` tool auto-decodes multiple encodings.
+
+## Key Insights
+
+### OPC-UA Security Bypass
+Many servers have "insecure trust lists" - they accept ANY client certificate:
+1. Generate self-signed cert with `opcua_generate_cert`
+2. Connect with `Basic256Sha256` + `SignAndEncrypt`
+3. Server accepts our cert without validation
+
+### S7 Non-Standard Ports
+Some systems use non-standard ports (not 102). The 4th parameter to `s7_connect` is the TCP port:
+```
+s7_connect("target", 0, 0, 36815)  # Custom port 36815
+```
+
+### Sustained Attacks
+ICS systems often auto-reset faults. Use sustained attack tools:
+```
+# S7comm
+s7_sustained_attack(db_number=1, offset=0, data="FF"*128, 
+                    duration_seconds=60, status_url="http://target:8080/status")
+
+# BACnet (safety thermostat resets every ~25s)
+bacnet_sustained_write(object_type="analogOutput", object_id=21, value=100,
+                       duration_seconds=120, interval_seconds=2.0)
+```
+
+### BACnet Batch Writes
+Write to multiple objects at once for coordinated state changes:
+```
+bacnet_write_multiple(writes=[
+    {"object_type": "analogOutput", "object_id": 21, "value": 100},
+    {"object_type": "analogOutput", "object_id": 22, "value": 100}
+])
+```
+
+## Integration with Analysis.md
+
+Add ICS section:
+```markdown
+## ICS Analysis
+
+### Target
+- Protocol: [OPC-UA/S7comm]
+- IP: [target]
+- Port: [port]
+- Security: [None/Basic256Sha256/etc.]
+
+### Attack Surface
+- Writable variables: [list]
+- Data blocks: [DBx at offset y]
+
+### Exploitation
+- Payload: [what was written]
+- Effect: [system impact]
+```
+
+## Tool Quick Reference
+
+| Tool | Purpose |
+|------|---------|
+| `ics_check_installation` | Verify protocol libraries installed |
+| `opcua_enumerate_endpoints` | Discover OPC-UA security config |
+| `opcua_find_writable` | Find writable variables (attack surface) |
+| `s7_connect` | Connect to S7 PLC |
+| `s7_db_read` / `s7_db_write` | Read/write data blocks |
+| `s7_sustained_attack` | Continuous payload for auto-reset systems |
+| `s7_sustained_attack_multi` | Multi-offset for 3+ simultaneous faults |
+| `s7_scan_db_effects` | Map memory to equipment |
+| `bacnet_connect` | Connect to BACnet CLI server |
+| `bacnet_list_objects` | Enumerate building automation objects |
+| `bacnet_write_multiple` | Batch write to multiple objects |
+| `bacnet_sustained_write` | Continuous write for auto-reset systems |
+| `bacnet_find_writable` | Find all writable objects |
+| `modbus_connect` | Connect to Modbus CLI server |
+| `modbus_get_status` | Get system status (JSON) |
+| `modbus_write_coil` | Write single coil (on/off control) |
+| `modbus_write_register` | Write single register (numeric value) |
+| `modbus_send_raw` | Send raw Modbus hex command |
+| `ethernetip_connect` | Connect to EtherNet/IP controller |
+| `ethernetip_read_tag` | Read PLC tag by name |
+| `ethernetip_read_cip_object` | Read CIP object (class/instance) |
+| `ethernetip_enumerate_objects` | Scan for CIP objects |

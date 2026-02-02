@@ -1,0 +1,37 @@
+# ICS Exploitation MCP - Dependencies
+# ====================================
+# Install all: pip install -r requirements.txt
+# Or install selectively based on needed protocols
+
+# =============================================================================
+# OPC-UA Protocol Support
+# =============================================================================
+# Required for OPC-UA PLC communication (Siemens, ABB, Rockwell, etc.)
+opcua>=0.98.0
+
+# Required for certificate generation (OPC-UA trust list bypass)
+cryptography>=41.0.0
+
+# =============================================================================
+# S7comm Protocol Support
+# =============================================================================
+# Required for Siemens S7 PLC communication (S7-300/400/1200/1500)
+python-snap7>=1.3
+
+# =============================================================================
+# MCP Server Mode
+# =============================================================================
+# Required for running as MCP server (Cursor IDE / Claude Desktop)
+mcp>=1.0.0
+
+# =============================================================================
+# EtherNet/IP Protocol Support
+# =============================================================================
+# Required for EtherNet/IP / CIP protocol communication (Allen-Bradley, Rockwell)
+pycomm3>=1.2.0
+
+# =============================================================================
+# Status Monitoring (Optional)
+# =============================================================================
+# Required for HMI status monitoring and sustained attack features
+requests>=2.25.0
