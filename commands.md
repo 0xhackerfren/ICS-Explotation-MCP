@@ -1,15 +1,15 @@
 # ICS Exploitation MCP - Command Reference
 
-Complete reference for all 58 tools in the ICS Exploitation MCP (v1.2.0).
+Complete reference for all 56 tools in the ICS Exploitation MCP (v1.2.0).
 
 ## Protocol Coverage
 
 | Protocol | Tools | Status |
 |----------|-------|--------|
 | General | 3 | Core utilities |
-| OPC-UA | 11 | Validated |
+| OPC-UA | 9 | Validated |
 | S7comm | 17 | Validated |
-| BACnet | 10 | Validated |
+| BACnet | 9 | Validated |
 | Modbus | 10 | Validated |
 | EtherNet/IP | 8 | Validated |
 
@@ -671,7 +671,7 @@ s7_db_write(db_number=1, offset=0, data=payload['payload'])
 
 ---
 
-## BACnet Tools (10)
+## BACnet Tools (9)
 
 BACnet (Building Automation and Control Networks) is used for HVAC, lighting, access control, and fire detection in building automation systems.
 
@@ -913,6 +913,246 @@ Get detailed information about a specific BACnet object.
   "presentValue": 19.0,
   "objectName": "Therm-L2-21",
   "description": "Level 2 Thermostat"
+}
+```
+
+---
+
+## Modbus Tools (10)
+
+Modbus is a serial communication protocol used in industrial automation for PLCs, RTUs, and sensors. Common in water systems, power grids, and manufacturing.
+
+### modbus_connect
+
+Connect to Modbus CLI server (menu-driven interface).
+
+**Parameters**:
+| Name | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| host | string | Yes | - | Target IP address |
+| port | integer | Yes | - | Modbus CLI port |
+| timeout | integer | No | 10 | Connection timeout in seconds |
+
+**Returns**:
+```json
+{
+  "success": true,
+  "connected": true,
+  "host": "192.168.1.1",
+  "port": 502,
+  "banner": "1. status\n2. command"
+}
+```
+
+---
+
+### modbus_disconnect
+
+Disconnect from Modbus CLI server.
+
+**Parameters**: None
+
+**Returns**:
+```json
+{"success": true, "disconnected": true}
+```
+
+---
+
+### modbus_get_status
+
+Get system status (typically menu option 1). Returns JSON status data.
+
+**Parameters**: None
+
+**Returns**:
+```json
+{
+  "success": true,
+  "status": {
+    "auto_mode": true,
+    "manual_mode": false,
+    "in_valve": 0,
+    "out_valve": 0,
+    "status": "idle"
+  }
+}
+```
+
+---
+
+### modbus_send_raw
+
+Send raw Modbus command as hex string. No spaces, includes slave ID and function code.
+
+**Parameters**:
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| hex_command | string | Yes | Modbus command as hex string (e.g., "010500000FF00") |
+
+**Example**:
+```python
+# Enable coil at address 0x0000 on slave 1 (FC 05)
+modbus_send_raw(hex_command="010500000FF00")
+
+# Read 10 coils starting at address 0 on slave 1 (FC 01)
+modbus_send_raw(hex_command="0101000A000A")
+```
+
+---
+
+### modbus_write_coil
+
+Write single coil (Modbus Function Code 05). Use for on/off controls.
+
+**Parameters**:
+| Name | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| address | integer | Yes | - | Coil address (0-65535) |
+| value | boolean | Yes | - | True=ON, False=OFF |
+| unit_id | integer | No | 1 | Modbus unit/slave ID |
+
+**Example**:
+```python
+# Enable manual mode on slave 82
+modbus_write_coil(address=9947, value=True, unit_id=82)
+
+# Force start output
+modbus_write_coil(address=52, value=True, unit_id=82)
+```
+
+**Returns**:
+```json
+{
+  "success": true,
+  "address": 9947,
+  "value": true,
+  "unit_id": 82,
+  "hex_command": "52050026DBFF00"
+}
+```
+
+---
+
+### modbus_write_register
+
+Write single register (Modbus Function Code 06). Use for numeric values.
+
+**Parameters**:
+| Name | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| address | integer | Yes | - | Register address (0-65535) |
+| value | integer | Yes | - | Value to write (0-65535) |
+| unit_id | integer | No | 1 | Modbus unit/slave ID |
+
+**Example**:
+```python
+# Write value 255 to register 100 on slave 82
+modbus_write_register(address=100, value=255, unit_id=82)
+```
+
+**Returns**:
+```json
+{
+  "success": true,
+  "address": 100,
+  "value": 255,
+  "unit_id": 82
+}
+```
+
+---
+
+### modbus_read_coils
+
+Read coils (Modbus Function Code 01).
+
+**Parameters**:
+| Name | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| address | integer | Yes | - | Starting coil address |
+| count | integer | No | 1 | Number of coils to read |
+| unit_id | integer | No | 1 | Modbus unit/slave ID |
+
+**Returns**:
+```json
+{
+  "success": true,
+  "address": 0,
+  "count": 8,
+  "values": [true, false, true, false, false, false, false, false]
+}
+```
+
+---
+
+### modbus_read_registers
+
+Read holding registers (Modbus Function Code 03).
+
+**Parameters**:
+| Name | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| address | integer | Yes | - | Starting register address |
+| count | integer | No | 1 | Number of registers to read |
+| unit_id | integer | No | 1 | Modbus unit/slave ID |
+
+**Returns**:
+```json
+{
+  "success": true,
+  "address": 0,
+  "count": 4,
+  "values": [0, 255, 1024, 512]
+}
+```
+
+---
+
+### modbus_scan_coils
+
+Scan coils to find which addresses affect the system.
+
+**Parameters**:
+| Name | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| start | integer | No | 0 | Starting address |
+| end | integer | No | 16 | Ending address |
+| unit_id | integer | No | 1 | Modbus unit/slave ID |
+
+**Returns**:
+```json
+{
+  "success": true,
+  "scanned_range": [0, 16],
+  "coils_found": [
+    {"address": 0, "value": true},
+    {"address": 5, "value": false}
+  ]
+}
+```
+
+---
+
+### modbus_scan_write_coils
+
+Scan a range of coils and write a value to each.
+
+**Parameters**:
+| Name | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| start | integer | No | 0 | Starting address |
+| end | integer | No | 10 | Ending address |
+| set_value | boolean | No | true | Value to write (true/false) |
+| unit_id | integer | No | 1 | Modbus unit/slave ID |
+
+**Returns**:
+```json
+{
+  "success": true,
+  "range": [0, 10],
+  "value_set": true,
+  "writes_performed": 10
 }
 ```
 

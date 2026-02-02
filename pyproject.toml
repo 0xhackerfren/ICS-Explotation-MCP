@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ics-exploitation-mcp"
-version = "1.0.0"
-description = "Unified MCP server for Industrial Control Systems security assessment - OPC-UA and S7comm protocols"
+version = "1.2.0"
+description = "MCP server for Industrial Control Systems security assessment - OPC-UA, S7comm, BACnet, Modbus, and EtherNet/IP protocols"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.8"
@@ -23,6 +23,14 @@ keywords = [
     "siemens",
     "s7comm",
     "s7",
+    "bacnet",
+    "hvac",
+    "building-automation",
+    "modbus",
+    "ethernetip",
+    "cip",
+    "allen-bradley",
+    "rockwell",
     "industrial",
     "automation",
     "security",
@@ -74,11 +82,17 @@ monitoring = [
     "requests>=2.25.0",
 ]
 
+# EtherNet/IP protocol support
+ethernetip = [
+    "pycomm3>=1.2.0",
+]
+
 # All protocols and features
 all = [
     "opcua>=0.98.0",
     "cryptography>=41.0.0",
     "python-snap7>=1.3",
+    "pycomm3>=1.2.0",
     "mcp>=1.0.0",
     "requests>=2.25.0",
 ]
